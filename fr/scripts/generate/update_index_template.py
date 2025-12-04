@@ -113,6 +113,15 @@ def get_translation(key, translations, default=''):
     """Récupère une traduction depuis le dictionnaire."""
     return translations.get(key, default)
 
+def get_sitemap_url(translations):
+    """Retourne l'URL absolue du sitemap depuis translations.csv."""
+    domain = get_translation('site.domain', translations, '')
+    if domain:
+        domain = domain.rstrip('/')
+        return f'{domain}/sitemap.xml'
+    # Fallback : URL relative depuis fr/index.html
+    return '../sitemap.xml'
+
 def unescape_html(text):
     """Déséchappe le HTML si nécessaire (pour les données qui viennent de Google Sheets)."""
     if not text:
@@ -454,10 +463,11 @@ def update_footer(html, translations):
         home_link_href = get_home_link()
         footer_links_html.append(f'<a href="{home_link_href}">{escape_html_attr(home_link_obj["text"])}</a>')
     
-    # Lien Sitemap
+    # Lien Sitemap (URL absolue avec domaine)
     sitemap_link = next((link for link in footer_links if 'sitemap' in link['key']), None)
     if sitemap_link:
-        footer_links_html.append(f'<a href="sitemap.xml">{escape_html_attr(sitemap_link["text"])}</a>')
+        sitemap_url = get_sitemap_url(translations)
+        footer_links_html.append(f'<a href="{escape_html_attr(sitemap_url)}">{escape_html_attr(sitemap_link["text"])}</a>')
     
     # Liens légaux (conditions, mentions, policy)
     # Ces liens pointent vers page_html/legal/{slug}.html

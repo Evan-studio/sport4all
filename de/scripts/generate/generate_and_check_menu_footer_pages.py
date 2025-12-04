@@ -88,6 +88,15 @@ def get_translation(key, translations, default=''):
     """Récupère une traduction depuis le dictionnaire."""
     return translations.get(key, default)
 
+def get_sitemap_url(translations):
+    """Retourne l'URL absolue du sitemap depuis translations.csv."""
+    domain = get_translation('site.domain', translations, '')
+    if domain:
+        domain = domain.rstrip('/')
+        return f'{domain}/sitemap.xml'
+    # Fallback : URL relative depuis page_html/categories/ ou page_html/legal/
+    return '../../../sitemap.xml'
+
 def escape_html_attr(text):
     """Échappe les caractères spéciaux pour les attributs HTML."""
     if not text:
@@ -297,14 +306,12 @@ def get_footer_items_from_csv(translations, page_type='category'):
             else:  # legal
                 footer_items.append({'text': home_text, 'url': '../../'})
     
-    # 2. Sitemap en deuxième
+    # 2. Sitemap en deuxième (URL absolue avec domaine)
     if sitemap_key:
         sitemap_text = translations.get(sitemap_key, '')
         if sitemap_text:
-            if page_type == 'category':
-                footer_items.append({'text': sitemap_text, 'url': '../../sitemap.xml'})
-            else:  # legal
-                footer_items.append({'text': sitemap_text, 'url': '../../sitemap.xml'})
+            sitemap_url = get_sitemap_url(translations)
+            footer_items.append({'text': sitemap_text, 'url': sitemap_url})
     
     # 3. Pages légales ensuite (triées)
     for footer_key in sorted(legal_keys):
