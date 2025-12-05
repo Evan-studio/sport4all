@@ -383,6 +383,74 @@ def main():
     print(f"  📁 Fichier: {sitemap_index_file}")
     print()
     
+    # 6. Générer aussi un sitemap combiné (toutes les URLs dans un seul fichier)
+    # Utile si Google a des problèmes avec le sitemap index
+    print("📋 Génération du sitemap combiné (sitemap-all.xml)...")
+    all_pages = []
+    
+    # Ajouter les pages de la racine (en) si elles existent
+    if 'en' in generated_sitemaps:
+        root_index = BASE_DIR / 'index.html'
+        if root_index.exists():
+            all_pages.append({
+                'url': f'{base_domain}/',
+                'lastmod': get_lastmod_date(root_index),
+                'priority': '1.0',
+                'changefreq': 'daily'
+            })
+        
+        root_categories_dir = BASE_DIR / 'page_html' / 'categories'
+        if root_categories_dir.exists():
+            for html_file in sorted(root_categories_dir.glob('*.html')):
+                if html_file.name != 'index.html':
+                    all_pages.append({
+                        'url': f'{base_domain}/page_html/categories/{html_file.name}',
+                        'lastmod': get_lastmod_date(html_file),
+                        'priority': '0.8',
+                        'changefreq': 'weekly'
+                    })
+        
+        root_products_dir = BASE_DIR / 'page_html' / 'products'
+        if root_products_dir.exists():
+            for html_file in sorted(root_products_dir.glob('produit-*.html')):
+                all_pages.append({
+                    'url': f'{base_domain}/page_html/products/{html_file.name}',
+                    'lastmod': get_lastmod_date(html_file),
+                    'priority': '0.7',
+                    'changefreq': 'monthly'
+                })
+    
+    # Ajouter les pages de chaque langue
+    for lang_dir in lang_dirs:
+        lang_code = lang_dir.name.lower()
+        lang_pages = find_html_pages(lang_dir, lang_code)
+        all_pages.extend(lang_pages)
+    
+    # Générer le sitemap combiné si on a moins de 50000 URLs (limite Google)
+    if len(all_pages) > 0 and len(all_pages) < 50000:
+        sitemap_all_content = ['<?xml version="1.0" encoding="UTF-8"?>']
+        sitemap_all_content.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
+        
+        for page in all_pages:
+            sitemap_all_content.append('  <url>')
+            sitemap_all_content.append(f'    <loc>{page["url"]}</loc>')
+            sitemap_all_content.append(f'    <lastmod>{page["lastmod"]}</lastmod>')
+            sitemap_all_content.append(f'    <changefreq>{page["changefreq"]}</changefreq>')
+            sitemap_all_content.append(f'    <priority>{page["priority"]}</priority>')
+            sitemap_all_content.append('  </url>')
+        
+        sitemap_all_content.append('</urlset>')
+        sitemap_all_file = BASE_DIR / 'sitemap-all.xml'
+        sitemap_all_file.write_text('\n'.join(sitemap_all_content), encoding='utf-8')
+        
+        print(f"  ✅ Sitemap combiné généré avec {len(all_pages)} URL(s)")
+        print(f"  📁 Fichier: {sitemap_all_file.name}")
+        print()
+        print("  💡 Si Google a des problèmes avec sitemap.xml, essayez de soumettre sitemap-all.xml")
+    else:
+        print(f"  ⚠️  Sitemap combiné non généré ({len(all_pages)} URLs, limite: 50000)")
+    print()
+    
     # 5. Résumé
     print("=" * 70)
     print("✅ TERMINÉ!")
