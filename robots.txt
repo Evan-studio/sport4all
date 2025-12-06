@@ -7,7 +7,7 @@ Disallow: /page_html/legal/privacy-policy.html
 Disallow: /page_html/legal/legal-notice.html
 
 # Sitemap (doit être accessible pour Google)
-Sitemap: https://makita-6kq.pages.dev/sitemap.xml
+Sitemap: https://uni-ion.com/sitemap.xml
 
 # Désactiver l'indexation des dossiers techniques
 Disallow: /APPLI:SCRIPT aliexpress/
@@ -23,3 +23,4 @@ Allow: /images/
 # Autoriser les pages HTML
 Allow: /*.html
 Allow: /page_html/
+

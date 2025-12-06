@@ -194,6 +194,69 @@ def load_footer_links_from_csv(translations):
     
     return footer_links
 
+def update_canonical_and_hreflang(html, translations):
+    """Met à jour le canonical et les hreflang pour pointer vers les bonnes URLs."""
+    domain = get_translation('site.domain', translations, 'https://votresite.com')
+    if domain:
+        domain = domain.rstrip('/')
+    
+    # Détecter la langue et le chemin actuel
+    lang_code = detect_language_code()
+    home_link = get_home_link()
+    
+    # Construire l'URL canonique de la page actuelle
+    if lang_code == 'en':
+        canonical_url = f'{domain}/'
+    else:
+        canonical_url = f'{domain}/{lang_code}/'
+    
+    # Générer les hreflang pour toutes les langues
+    hreflang_links = []
+    languages = [
+        ('en', ''),
+        ('fr', '/fr'),
+        ('de', '/de'),
+        ('es', '/es'),
+        ('pt', '/pt')
+    ]
+    
+    for lang, path in languages:
+        hreflang_url = f'{domain}{path}/'
+        hreflang_links.append(f'<link rel="alternate" hreflang="{lang}" href="{hreflang_url}" />')
+    
+    # Ajouter x-default
+    hreflang_links.append(f'<link rel="alternate" hreflang="x-default" href="{domain}/" />')
+    
+    hreflang_html = '\n'.join(hreflang_links)
+    
+    # Remplacer ou ajouter le canonical (avant les hreflang)
+    canonical_tag = f'<link rel="canonical" href="{canonical_url}" />'
+    
+    # Si canonical existe déjà, le remplacer
+    if re.search(r'<link rel="canonical"', html):
+        html = re.sub(
+            r'<link rel="canonical" href="[^"]*" />',
+            canonical_tag,
+            html
+        )
+    else:
+        # Ajouter le canonical avant les hreflang
+        html = re.sub(
+            r'(<link rel="alternate" hreflang)',
+            canonical_tag + '\n\\1',
+            html
+        )
+    
+    # Remplacer tous les hreflang
+    html = re.sub(
+        r'(<link rel="alternate" hreflang="[^"]*" href="[^"]*" />\s*)+',
+        hreflang_html + '\n',
+        html
+    )
+    
+    print(f"  ✅ Canonical et hreflang mis à jour")
+    return html
+
 def update_meta_tags(html, translations):
     """Met à jour les meta tags (title, description) et le schema.org JSON-LD."""
     site_title = get_translation('site.meta.title', translations, 'AliExpress Affiliate Program - Best Products')
@@ -897,6 +960,7 @@ def main():
     print("-" * 70)
     
     html = update_lang_attribute(html)
+    html = update_canonical_and_hreflang(html, translations)
     html = update_meta_tags(html, translations)
     html = update_logo_link(html)
     html = update_menu(html, translations)

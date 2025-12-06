@@ -113,15 +113,6 @@ def get_translation(key, translations, default=''):
     """Récupère une traduction depuis le dictionnaire."""
     return translations.get(key, default)
 
-def get_sitemap_url(translations):
-    """Retourne l'URL absolue du sitemap depuis translations.csv."""
-    domain = get_translation('site.domain', translations, '')
-    if domain:
-        domain = domain.rstrip('/')
-        return f'{domain}/sitemap.xml'
-    # Fallback : URL relative depuis fr/index.html
-    return '../sitemap.xml'
-
 def unescape_html(text):
     """Déséchappe le HTML si nécessaire (pour les données qui viennent de Google Sheets)."""
     if not text:
@@ -203,6 +194,69 @@ def load_footer_links_from_csv(translations):
     
     return footer_links
 
+def update_canonical_and_hreflang(html, translations):
+    """Met à jour le canonical et les hreflang pour pointer vers les bonnes URLs."""
+    domain = get_translation('site.domain', translations, 'https://votresite.com')
+    if domain:
+        domain = domain.rstrip('/')
+    
+    # Détecter la langue et le chemin actuel
+    lang_code = detect_language_code()
+    home_link = get_home_link()
+    
+    # Construire l'URL canonique de la page actuelle
+    if lang_code == 'en':
+        canonical_url = f'{domain}/'
+    else:
+        canonical_url = f'{domain}/{lang_code}/'
+    
+    # Générer les hreflang pour toutes les langues
+    hreflang_links = []
+    languages = [
+        ('en', ''),
+        ('fr', '/fr'),
+        ('de', '/de'),
+        ('es', '/es'),
+        ('pt', '/pt')
+    ]
+    
+    for lang, path in languages:
+        hreflang_url = f'{domain}{path}/'
+        hreflang_links.append(f'<link rel="alternate" hreflang="{lang}" href="{hreflang_url}" />')
+    
+    # Ajouter x-default
+    hreflang_links.append(f'<link rel="alternate" hreflang="x-default" href="{domain}/" />')
+    
+    hreflang_html = '\n'.join(hreflang_links)
+    
+    # Remplacer ou ajouter le canonical (avant les hreflang)
+    canonical_tag = f'<link rel="canonical" href="{canonical_url}" />'
+    
+    # Si canonical existe déjà, le remplacer
+    if re.search(r'<link rel="canonical"', html):
+        html = re.sub(
+            r'<link rel="canonical" href="[^"]*" />',
+            canonical_tag,
+            html
+        )
+    else:
+        # Ajouter le canonical avant les hreflang
+        html = re.sub(
+            r'(<link rel="alternate" hreflang)',
+            canonical_tag + '\n\\1',
+            html
+        )
+    
+    # Remplacer tous les hreflang
+    html = re.sub(
+        r'(<link rel="alternate" hreflang="[^"]*" href="[^"]*" />\s*)+',
+        hreflang_html + '\n',
+        html
+    )
+    
+    print(f"  ✅ Canonical et hreflang mis à jour")
+    return html
+
 def update_meta_tags(html, translations):
     """Met à jour les meta tags (title, description) et le schema.org JSON-LD."""
     site_title = get_translation('site.meta.title', translations, 'AliExpress Affiliate Program - Best Products')
@@ -234,7 +288,7 @@ def update_meta_tags(html, translations):
 
 def update_lang_attribute(html):
     """S'assure que la page est en anglais."""
-    html = re.sub(r'<html lang="[^"]*"', '<html lang="de"', html)
+    html = re.sub(r'<html lang="[^"]*"', '<html lang="en"', html)
     print(f"  ✅ Langue mise à jour en anglais")
     return html
 
@@ -463,11 +517,10 @@ def update_footer(html, translations):
         home_link_href = get_home_link()
         footer_links_html.append(f'<a href="{home_link_href}">{escape_html_attr(home_link_obj["text"])}</a>')
     
-    # Lien Sitemap (URL absolue avec domaine)
+    # Lien Sitemap
     sitemap_link = next((link for link in footer_links if 'sitemap' in link['key']), None)
     if sitemap_link:
-        sitemap_url = get_sitemap_url(translations)
-        footer_links_html.append(f'<a href="{escape_html_attr(sitemap_url)}">{escape_html_attr(sitemap_link["text"])}</a>')
+        footer_links_html.append(f'<a href="sitemap.xml">{escape_html_attr(sitemap_link["text"])}</a>')
     
     # Liens légaux (conditions, mentions, policy)
     # Ces liens pointent vers page_html/legal/{slug}.html
@@ -907,6 +960,7 @@ def main():
     print("-" * 70)
     
     html = update_lang_attribute(html)
+    html = update_canonical_and_hreflang(html, translations)
     html = update_meta_tags(html, translations)
     html = update_logo_link(html)
     html = update_menu(html, translations)
