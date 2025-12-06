@@ -2,7 +2,9 @@
 
 ## 🎯 Objectif
 
-Rediriger votre domaine `uni-ion.com` (Hostinger) vers Cloudflare Pages pour utiliser le domaine personnalisé au lieu de `makita-6kq.pages.dev`.
+Ajouter votre domaine personnalisé `uni-ion.com` (Hostinger) à votre site Cloudflare Pages existant (`makita-6kq.pages.dev`).
+
+**⚠️ IMPORTANT :** Vous n'avez PAS besoin de créer un nouveau site ! On ajoute simplement le domaine au site existant. Aucun fichier à copier !
 
 ## 📋 Étapes détaillées
 
@@ -79,11 +81,13 @@ Rediriger votre domaine `uni-ion.com` (Hostinger) vers Cloudflare Pages pour uti
 
    **Note** : Cloudflare Pages peut créer cet enregistrement automatiquement à l'étape suivante.
 
-### ÉTAPE 4 : Connecter le domaine à Cloudflare Pages
+### ÉTAPE 4 : Connecter le domaine à votre site Cloudflare Pages existant
+
+**⚠️ IMPORTANT :** Vous n'avez PAS besoin de créer un nouveau site ! On ajoute simplement le domaine au site existant.
 
 1. **Dans Cloudflare Dashboard**
    - Allez dans **"Pages"** (menu de gauche)
-   - Sélectionnez votre projet `makita` (ou le nom de votre projet)
+   - Sélectionnez votre projet **`makita`** (votre site existant)
 
 2. **Ajouter un domaine personnalisé**
    - Cliquez sur l'onglet **"Custom domains"**
@@ -99,6 +103,12 @@ Rediriger votre domaine `uni-ion.com` (Hostinger) vers Cloudflare Pages pour uti
 4. **Enregistrement CNAME automatique**
    - Cloudflare Pages créera automatiquement l'enregistrement CNAME nécessaire
    - Vous n'avez normalement pas besoin de le créer manuellement
+
+**Résultat :** Votre site sera accessible à la fois sur :
+- `https://makita-6kq.pages.dev` (ancien domaine, toujours actif)
+- `https://uni-ion.com` (nouveau domaine personnalisé)
+
+**Aucun fichier à copier !** Les deux domaines pointent vers le même site.
 
 ### ÉTAPE 5 : Vérifier la configuration
 
@@ -134,19 +144,24 @@ Utilisez un outil en ligne pour vérifier :
 
 ## ⚠️ Points importants
 
-1. **Une fois les DNS changés sur Hostinger** :
+1. **Vous n'avez PAS besoin de créer un nouveau site Cloudflare Pages** :
+   - On ajoute simplement le domaine personnalisé au site existant
+   - Aucun fichier à copier ou déplacer
+   - Les deux domaines (`makita-6kq.pages.dev` et `uni-ion.com`) pointent vers le même site
+
+2. **Une fois les DNS changés sur Hostinger** :
    - Hostinger ne gère plus les DNS (c'est Cloudflare qui gère)
    - Vous devez configurer les DNS dans Cloudflare, pas Hostinger
 
-2. **SSL/TLS** :
+3. **SSL/TLS** :
    - Cloudflare génère automatiquement un certificat SSL gratuit
    - HTTPS fonctionnera automatiquement
 
-3. **Cache** :
+4. **Cache** :
    - Cloudflare peut mettre en cache
    - Si besoin, purgez le cache dans Cloudflare Dashboard > Caching > Purge Everything
 
-4. **Sous-domaines** :
+5. **Sous-domaines** :
    - Si vous voulez `www.uni-ion.com`, ajoutez aussi un CNAME pour `www` pointant vers `makita-6kq.pages.dev`
 
 ## ✅ Checklist
