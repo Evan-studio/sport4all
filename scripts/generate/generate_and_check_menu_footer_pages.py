@@ -384,6 +384,14 @@ def update_menu_and_footer_in_page(html_content, menu_items, footer_items, trans
         html_content
     )
     
+    # Corriger le lien href du logo pour les pages catégories (./ -> ../../)
+    # Les pages catégories sont dans page_html/categories/, donc elles doivent remonter de 2 niveaux pour aller à la racine
+    html_content = re.sub(
+        r'(<a href=")\./(" class="logo" id="logo">)',
+        r'\1../../\2',
+        html_content
+    )
+    
     return html_content
 
 def generate_category_page(category_slug, category_name, translations, all_products=None):

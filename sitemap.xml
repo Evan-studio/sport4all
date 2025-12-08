@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<sitemapindex xmlns="https://uni-ion.com/schemas/sitemap/0.9">
+<sitemapindex xmlns="https://bafang-shop.com/schemas/sitemap/0.9">
   <sitemap>
-    <loc>https://uni-ion.com/sitemap-en.xml</loc>
+    <loc>https://bafang-shop.com/sitemap-en.xml</loc>
     <lastmod>2025-12-06</lastmod>
   </sitemap>
   <sitemap>
-    <loc>https://uni-ion.com/sitemap-de.xml</loc>
+    <loc>https://bafang-shop.com/sitemap-de.xml</loc>
     <lastmod>2025-12-06</lastmod>
   </sitemap>
   <sitemap>
-    <loc>https://uni-ion.com/sitemap-es.xml</loc>
+    <loc>https://bafang-shop.com/sitemap-es.xml</loc>
     <lastmod>2025-12-06</lastmod>
   </sitemap>
   <sitemap>
-    <loc>https://uni-ion.com/sitemap-fr.xml</loc>
+    <loc>https://bafang-shop.com/sitemap-fr.xml</loc>
     <lastmod>2025-12-06</lastmod>
   </sitemap>
   <sitemap>
-    <loc>https://uni-ion.com/sitemap-pt.xml</loc>
+    <loc>https://bafang-shop.com/sitemap-pt.xml</loc>
     <lastmod>2025-12-06</lastmod>
   </sitemap>
 </sitemapindex>
