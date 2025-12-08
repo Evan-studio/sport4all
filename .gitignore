@@ -19,6 +19,10 @@ __pycache__/
 .vscode/
 .idea/
 
+# Fichiers de credentials YouTube (contiennent des tokens OAuth)
+upload youtube/credentials.json
+**/upload youtube/credentials.json
+
 # Exclure les vidéos (trop volumineuses pour GitHub/Cloudflare)
 images/products/**/*.mp4
 images/products/**/*.webm
