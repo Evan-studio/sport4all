@@ -15,6 +15,8 @@ Usage:
 
 import subprocess
 import sys
+import csv
+import re
 from pathlib import Path
 
 BASE_DIR = Path(__file__).parent
@@ -78,6 +80,74 @@ def detect_languages():
             })
     
     return sorted(languages, key=lambda x: (x['code'] != 'en', x['code']))
+
+def load_domain_from_translations(translations_path: Path):
+    """Lit translations.csv et renvoie la première valeur non vide pour site.domain."""
+    if not translations_path.exists():
+        return None
+    try:
+        with translations_path.open(newline='', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if row.get('key', '').strip() == 'site.domain':
+                    # Chercher la première colonne non vide (hors key/description)
+                    for k, v in row.items():
+                        if k in ('key', 'description'):
+                            continue
+                        if v and v.strip():
+                            return v.strip()
+                    break
+    except Exception as e:
+        print(f"  ⚠️  Impossible de lire {translations_path}: {e}")
+    return None
+
+def update_robots_sitemap(domain: str, lang_code: str, robots_path: Path):
+    """Met à jour (ou ajoute) la ligne Sitemap dans robots.txt pour la langue donnée."""
+    domain = domain.rstrip('/')
+    sitemap_url = f"{domain}/sitemap.xml" if lang_code == 'en' else f"{domain}/{lang_code}/sitemap.xml"
+    sitemap_line = f"Sitemap: {sitemap_url}"
+
+    if not robots_path.exists():
+        return False
+
+    try:
+        content = robots_path.read_text(encoding='utf-8')
+        # Remplacer la ligne Sitemap existante ou l'ajouter en bas si absente
+        if re.search(r'^Sitemap: .*', content, flags=re.MULTILINE):
+            content_new = re.sub(r'^Sitemap: .*', sitemap_line, content, flags=re.MULTILINE)
+        else:
+            if not content.endswith('\n'):
+                content += '\n'
+            content_new = content + sitemap_line + '\n'
+
+        if content_new != content:
+            robots_path.write_text(content_new, encoding='utf-8')
+        return True
+    except Exception as e:
+        print(f"  ⚠️  Impossible de mettre à jour {robots_path}: {e}")
+        return False
+
+def update_all_robots_sitemaps(languages):
+    """Met à jour robots.txt pour la racine et chaque langue avec le bon sitemap."""
+    updated = 0
+    for lang in languages:
+        lang_code = lang['code']
+        lang_dir = lang['dir']
+        translations_path = lang_dir / 'translations.csv'
+        robots_path = lang_dir / 'robots.txt'
+
+        domain = load_domain_from_translations(translations_path)
+        if not domain:
+            # Fallback sur le domaine de la racine si non trouvé
+            root_domain = load_domain_from_translations(BASE_DIR / 'translations.csv')
+            domain = root_domain or 'https://bafang-shop.com'
+
+        if update_robots_sitemap(domain, lang_code, robots_path):
+            updated += 1
+    if updated:
+        print(f"  ✅ robots.txt mis à jour ({updated} fichier(s))")
+    else:
+        print("  ⚠️  Aucun robots.txt mis à jour")
 
 def run_script(script_path, lang_name, step_name):
     """Exécute un script."""
@@ -157,6 +227,10 @@ def main():
             continue
         
         success_count += 1
+
+    # Mettre à jour robots.txt (Sitemap) avec les bons domaines
+    print("\n📄 Mise à jour des robots.txt (Sitemap)...")
+    update_all_robots_sitemaps(languages)
     
     print()
     print("=" * 70)

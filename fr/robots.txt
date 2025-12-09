@@ -7,7 +7,7 @@ Disallow: /page_html/legal/privacy-policy.html
 Disallow: /page_html/legal/legal-notice.html
 
 # Sitemap (doit être accessible pour Google)
-Sitemap: https://uni-ion.com/sitemap.xml
+Sitemap: https://bafang-shop.com/fr/sitemap.xml
 
 # Désactiver l'indexation des dossiers techniques
 Disallow: /APPLI:SCRIPT aliexpress/
