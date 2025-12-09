@@ -164,9 +164,24 @@ def copy_source_to_language(source_dir, target_lang_code):
     # Dossiers à copier (sans images)
     dirs_to_copy = [
         'CSV',
-        'page_html',
-        'scripts'
+        'page_html'
     ]
+    
+    # Copier les scripts depuis le dossier principal (toujours à jour avec les dernières corrections)
+    scripts_source = BASE_DIR / 'scripts'
+    scripts_target = lang_dir / 'scripts'
+    if scripts_source.exists():
+        if scripts_target.exists():
+            shutil.rmtree(scripts_target)
+        shutil.copytree(scripts_source, scripts_target)
+        print(f"  ✅ scripts/ (copié depuis le dossier principal - versions corrigées)")
+    else:
+        # Fallback : copier depuis le dossier source si le dossier principal n'existe pas
+        source_scripts = source_dir / 'scripts'
+        if source_scripts.exists():
+            target_scripts = lang_dir / 'scripts'
+            shutil.copytree(source_scripts, target_scripts)
+            print(f"  ⚠️  scripts/ (copié depuis le dossier source - peut être obsolète)")
     
     # Copier les fichiers individuels
     for file_name in files_to_copy:

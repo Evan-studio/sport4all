@@ -88,6 +88,68 @@ def get_translation(key, translations, default=''):
     """Récupère une traduction depuis le dictionnaire."""
     return translations.get(key, default)
 
+def add_canonical_and_hreflang(html, translations, page_path):
+    """Ajoute le canonical et les hreflang pour une page donnée."""
+    domain = get_translation('site.domain', translations, 'https://bafang-shop.com')
+    if domain:
+        domain = domain.rstrip('/')
+    
+    lang_code = detect_language_code()
+    
+    # Construire l'URL canonique
+    if lang_code == 'en':
+        canonical_url = f'{domain}/{page_path}'
+    else:
+        canonical_url = f'{domain}/{lang_code}/{page_path}'
+    
+    # Détecter les langues disponibles depuis la racine du projet
+    root_dir = BASE_DIR
+    if len(BASE_DIR.name) == 2 and BASE_DIR.name.isalpha():
+        root_dir = BASE_DIR.parent
+    
+    available_languages = []
+    if (root_dir / 'index.html').exists():
+        available_languages.append(('en', ''))
+    
+    for item in root_dir.iterdir():
+        if (item.is_dir() and not item.name.startswith('.') and 
+            item.name not in ['APPLI:SCRIPT aliexpress', 'scripts', 'config', 'images', 'page_html', 
+                              'upload_cloudflare', 'sauv', 'CSV', '__pycache__', '.git', 'node_modules', 'upload youtube'] and
+            (item / 'index.html').exists()):
+            lang = item.name.lower()
+            available_languages.append((lang, f'/{lang}'))
+    
+    # Générer les hreflang
+    hreflang_links = []
+    for lang, path in available_languages:
+        if lang == 'en':
+            hreflang_url = f'{domain}/{page_path}'
+        else:
+            hreflang_url = f'{domain}/{lang}/{page_path}'
+        hreflang_links.append(f'<link rel="alternate" hreflang="{lang}" href="{hreflang_url}" />')
+    
+    # Ajouter x-default
+    hreflang_links.append(f'<link rel="alternate" hreflang="x-default" href="{domain}/{page_path}" />')
+    
+    hreflang_html = '\n'.join(hreflang_links)
+    canonical_tag = f'<link rel="canonical" href="{canonical_url}" />'
+    
+    # Supprimer TOUS les canonical et hreflang existants (pour éviter les doublons)
+    html = re.sub(r'<link rel="canonical"[^>]*/>\s*', '', html)
+    html = re.sub(r'<link rel="alternate" hreflang="[^"]*" href="[^"]*" />\s*', '', html)
+
+    # Ajouter le canonical et les hreflang ensemble (canonical en premier)
+    hreflang_section = canonical_tag + '\n' + hreflang_html + '\n'
+
+    # Insérer juste après l'ouverture du <head> (plus robuste)
+    if re.search(r'<head[^>]*>', html):
+        html = re.sub(r'(<head[^>]*>)', r'\1\n' + hreflang_section, html, count=1)
+    else:
+        # Fallback : préfixer si le head est introuvable
+        html = hreflang_section + html
+    
+    return html
+
 def escape_html_attr(text):
     """Échappe les caractères spéciaux pour les attributs HTML."""
     if not text:
@@ -415,6 +477,9 @@ def generate_category_page(category_slug, category_name, translations, all_produ
     html = re.sub(r'<html lang="[^"]*"', f'<html lang="{lang_code}"', html)
     html = re.sub(r"<html lang='[^']*'", f'<html lang="{lang_code}"', html)
     
+    # Ajouter canonical et hreflang pour les pages catégories
+    html = add_canonical_and_hreflang(html, translations, f'page_html/categories/{category_slug}.html')
+    
     # Mettre à jour les infos de la catégorie
     # Utiliser le numéro (category_slug est maintenant un numéro)
     category_title = get_translation(f'meta.title.menu.{category_slug}', translations, f'{category_name} - AliExpress Affiliate')
@@ -477,6 +542,10 @@ def generate_legal_page(legal_key, legal_text, translations):
     
     html = re.sub(r'<title>.*?</title>', f'<title>{escape_html_attr(legal_title)}</title>', html)
     html = re.sub(r'<meta name="description"[^>]*>', f'<meta name="description" content="{escape_html_attr(legal_description)}">', html)
+    
+    # Ajouter canonical et hreflang pour les pages légales
+    legal_slug_for_url = slugify(legal_text)
+    html = add_canonical_and_hreflang(html, translations, f'page_html/legal/{legal_slug_for_url}.html')
     
     # Remplacer la section main avec mise en forme HTML
     content_html = f'<section>\n<h1>{escape_html_attr(legal_title)}</h1>\n'
@@ -627,6 +696,9 @@ def main():
             lang_code = detect_language_code()
             html_content = re.sub(r'<html lang="[^"]*"', f'<html lang="{lang_code}"', html_content)
             html_content = re.sub(r"<html lang='[^']*'", f'<html lang="{lang_code}"', html_content)
+
+            # Ajouter canonical et hreflang pour les pages catégories (mise à jour)
+            html_content = add_canonical_and_hreflang(html_content, translations, f'page_html/categories/{category_number}.html')
             
             # Mettre à jour le titre, meta description et la description de la catégorie
             category_title = get_translation(f'meta.title.menu.{category_number}', translations, f'{category_name} - AliExpress Affiliate')
@@ -724,6 +796,10 @@ def main():
             
             # Mettre à jour la meta description
             html_content = re.sub(r'<meta name="description"[^>]*>', f'<meta name="description" content="{escape_html_attr(legal_description)}">', html_content, flags=re.DOTALL)
+            
+            # Ajouter canonical et hreflang pour les pages légales (mise à jour)
+            legal_slug_for_url = slugify(legal_text)
+            html_content = add_canonical_and_hreflang(html_content, translations, f'page_html/legal/{legal_slug_for_url}.html')
             
             # Mettre à jour le contenu (h1 et main) avec la même logique que generate_legal_page
             if legal_content:
