@@ -293,6 +293,82 @@ def generate_product_page_html(product, translations):
     html = re.sub(r'<title>.*?</title>', f'<title>{escape_html_attr(meta_title)}</title>', html)
     html = re.sub(r'<meta name="description"[^>]*>', f'<meta name="description" content="{escape_html_attr(meta_description)}">', html)
     
+    # 2.5. Générer les hreflang et canonical corrects pour la page produit
+    domain = get_translation('site.domain', translations, 'https://bafang-shop.com')
+    if domain:
+        domain = domain.rstrip('/')
+    
+    # Construire l'URL de cette page produit
+    product_filename = f'produit-{clean_product_id}.html'
+    if lang_code == 'en':
+        canonical_url = f'{domain}/page_html/products/{product_filename}'
+    else:
+        canonical_url = f'{domain}/{lang_code}/page_html/products/{product_filename}'
+    
+    # Générer les hreflang pour toutes les langues disponibles
+    # Détecter les langues disponibles depuis la racine du projet
+    # Si BASE_DIR est un dossier de langue (ex: fr/), remonter à la racine
+    root_dir = BASE_DIR
+    if len(BASE_DIR.name) == 2 and BASE_DIR.name.isalpha():
+        # On est dans un dossier de langue, remonter à la racine
+        root_dir = BASE_DIR.parent
+    
+    available_languages = []
+    if (root_dir / 'index.html').exists():
+        available_languages.append(('en', ''))
+    
+    for item in root_dir.iterdir():
+        if (item.is_dir() and not item.name.startswith('.') and 
+            item.name not in ['APPLI:SCRIPT aliexpress', 'scripts', 'config', 'images', 'page_html', 
+                              'upload_cloudflare', 'sauv', 'CSV', '__pycache__', '.git', 'node_modules', 'upload youtube'] and
+            (item / 'index.html').exists()):
+            lang = item.name.lower()
+            available_languages.append((lang, f'/{lang}'))
+    
+    # Générer les hreflang
+    hreflang_links = []
+    for lang, path in available_languages:
+        if lang == 'en':
+            hreflang_url = f'{domain}/page_html/products/{product_filename}'
+        else:
+            hreflang_url = f'{domain}/{lang}/page_html/products/{product_filename}'
+        hreflang_links.append(f'<link rel="alternate" hreflang="{lang}" href="{hreflang_url}" />')
+    
+    # Ajouter x-default (vers la langue principale)
+    hreflang_links.append(f'<link rel="alternate" hreflang="x-default" href="{domain}/page_html/products/{product_filename}" />')
+    
+    hreflang_html = '\n'.join(hreflang_links)
+    canonical_tag = f'<link rel="canonical" href="{canonical_url}" />'
+    
+    # Supprimer TOUS les canonical et hreflang existants
+    html = re.sub(
+        r'<link rel="canonical"[^>]*/>\s*',
+        '',
+        html
+    )
+    html = re.sub(
+        r'<link rel="alternate" hreflang="[^"]*" href="[^"]*" />\s*',
+        '',
+        html
+    )
+    
+    # Ajouter le canonical et les hreflang ensemble (canonical en premier)
+    hreflang_section = canonical_tag + '\n' + hreflang_html + '\n'
+    
+    # Trouver où insérer (après le meta description, avant le style)
+    if re.search(r'<meta name="description"', html):
+        html = re.sub(
+            r'(<meta name="description"[^>]*>)',
+            r'\1\n' + hreflang_section,
+            html
+        )
+    elif re.search(r'</title>', html):
+        html = re.sub(
+            r'(</title>)',
+            r'\1\n' + hreflang_section,
+            html
+        )
+    
     # 3. Mettre à jour le logo (chemin relatif)
     # Le template peut avoir un logo vide ou avec href
     html = re.sub(
@@ -310,38 +386,18 @@ def generate_product_page_html(product, translations):
         flags=re.DOTALL
     )
     
-    # Récupérer l'URL YouTube si elle existe
-    youtube_url = product.get('youtube_url', '').strip() if product.get('youtube_url') else ''
-    has_youtube = bool(youtube_url)
-    
-    # Extraire l'ID YouTube depuis l'URL
-    youtube_id = ''
-    if has_youtube:
-        match = re.search(r'(?:youtube\.com/watch\?v=|youtu\.be/)([^&\s]+)', youtube_url)
-        if match:
-            youtube_id = match.group(1)
-    
     # 5. Générer le contenu du produit (remplacer le div product-container)
     product_content = f'''<div class="product-header">
 <div class="product-images">
 <img src="{main_image}" alt="{escape_html_attr(title)}" class="main-image" id="main-image">
 '''
     
-    # Ajouter la vidéo YouTube si elle existe
-    if has_youtube and youtube_id:
-        product_content += f'<iframe id="main-video" class="main-video" style="display:none;width:100%;aspect-ratio:1;border:none;border-radius:8px;" src="https://www.youtube.com/embed/{youtube_id}" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe>\n'
-    
-    # Ajouter les miniatures si plusieurs images ou vidéo YouTube
-    if len(images) > 1 or has_youtube:
+    # Ajouter les miniatures si plusieurs images
+    if len(images) > 1:
         product_content += '<div class="thumbnails">\n'
         for idx, img in enumerate(images):
             active_class = 'active' if idx == 0 else ''
             product_content += f'<img src="{img}" alt="Image {idx+1}" class="thumbnail {active_class}" onclick="showImage(\'{img}\',event)">\n'
-        
-        # Ajouter la miniature vidéo si YouTube existe
-        if has_youtube:
-            product_content += f'<div class="thumbnail-video" onclick="showVideo(event)"><img src="{main_image}" alt="Vidéo"></div>\n'
-        
         product_content += '</div>\n'
     
     product_content += '</div>\n'
@@ -409,32 +465,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     window.showImage = function(imgSrc, evt) {
         const mainImg = document.getElementById('main-image');
-        const mainVid = document.getElementById('main-video');
         if (mainImg) {
             mainImg.src = imgSrc;
-            mainImg.style.display = 'block';
         }
-        if (mainVid) {
-            mainVid.style.display = 'none';
-        }
-        document.querySelectorAll('.thumbnail,.thumbnail-video').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.thumbnail').forEach(t => t.classList.remove('active'));
         if (evt && evt.target) {
-            evt.target.closest('.thumbnail,.thumbnail-video')?.classList.add('active');
-        }
-    };
-    
-    window.showVideo = function(evt) {
-        const mainImg = document.getElementById('main-image');
-        const mainVid = document.getElementById('main-video');
-        if (mainImg) {
-            mainImg.style.display = 'none';
-        }
-        if (mainVid) {
-            mainVid.style.display = 'block';
-        }
-        document.querySelectorAll('.thumbnail,.thumbnail-video').forEach(t => t.classList.remove('active'));
-        if (evt && evt.target) {
-            evt.target.closest('.thumbnail-video')?.classList.add('active');
+            evt.target.closest('.thumbnail')?.classList.add('active');
         }
     };
 });
@@ -497,13 +533,9 @@ def load_products_from_csv():
                 name = row.get(name_col, '').strip() if name_col else ''
                 title = name or titre or row.get('name', '').strip() or row.get('titre', '').strip()
                 
-                # Récupérer youtube_url
-                youtube_url = row.get('youtube_url', '').strip() if 'youtube_url' in fieldnames else ''
-                
                 products.append({
                     'id': product_id,
                     'title': title,
-                    'youtube_url': youtube_url,
                     'name': name or row.get('name', '').strip(),
                     'affiliate_link': affiliate_link,
                     'affiliate_links': affiliate_link,

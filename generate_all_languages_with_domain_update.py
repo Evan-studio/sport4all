@@ -19,44 +19,65 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).parent
 
-# Configuration des langues
-LANGUAGES = [
-    {
-        'code': 'en',
-        'name': 'Anglais',
-        'generate_script': BASE_DIR / 'generate_all_en.py',
-        'update_script': BASE_DIR / 'scripts' / 'generate' / 'update_domain_urls.py',
-        'dir': BASE_DIR
-    },
-    {
-        'code': 'fr',
-        'name': 'Français',
-        'generate_script': BASE_DIR / 'fr' / 'scripts' / 'generate_all_fr.py',
-        'update_script': BASE_DIR / 'fr' / 'scripts' / 'generate' / 'update_domain_urls.py',
-        'dir': BASE_DIR / 'fr'
-    },
-    {
-        'code': 'de',
-        'name': 'Allemand',
-        'generate_script': BASE_DIR / 'de' / 'scripts' / 'generate_all_de.py',
-        'update_script': BASE_DIR / 'de' / 'scripts' / 'generate' / 'update_domain_urls.py',
-        'dir': BASE_DIR / 'de'
-    },
-    {
-        'code': 'es',
-        'name': 'Espagnol',
-        'generate_script': BASE_DIR / 'es' / 'scripts' / 'generate_all_es.py',
-        'update_script': BASE_DIR / 'es' / 'scripts' / 'generate' / 'update_domain_urls.py',
-        'dir': BASE_DIR / 'es'
-    },
-    {
-        'code': 'pt',
-        'name': 'Portugais',
-        'generate_script': BASE_DIR / 'pt' / 'scripts' / 'generate_all_pt.py',
-        'update_script': BASE_DIR / 'pt' / 'scripts' / 'generate' / 'update_domain_urls.py',
-        'dir': BASE_DIR / 'pt'
-    }
-]
+# Dossiers à exclure lors de la détection des langues
+EXCLUDED_DIRS = {
+    'APPLI:SCRIPT aliexpress', 'scripts', 'config', 'images', 'page_html', 
+    'upload_cloudflare', 'sauv', 'CSV', '__pycache__', '.git', 'node_modules',
+    'upload youtube'
+}
+
+# Noms de langues
+LANGUAGE_NAMES = {
+    'en': 'Anglais',
+    'fr': 'Français',
+    'de': 'Allemand',
+    'es': 'Espagnol',
+    'pt': 'Portugais',
+    'it': 'Italien',
+    'nl': 'Néerlandais',
+    'ru': 'Russe',
+    'pl': 'Polonais',
+}
+
+def detect_languages():
+    """Détecte automatiquement toutes les langues disponibles."""
+    languages = []
+    
+    # Ajouter le dossier principal (en) s'il existe
+    root_index = BASE_DIR / 'index.html'
+    root_translations = BASE_DIR / 'translations.csv'
+    root_generate_script = BASE_DIR / 'generate_all_en.py'
+    
+    if root_index.exists() and root_translations.exists():
+        languages.append({
+            'code': 'en',
+            'name': LANGUAGE_NAMES.get('en', 'Anglais'),
+            'generate_script': root_generate_script,
+            'update_script': BASE_DIR / 'scripts' / 'generate' / 'update_domain_urls.py',
+            'dir': BASE_DIR
+        })
+    
+    # Détecter les dossiers de langue
+    for item in BASE_DIR.iterdir():
+        if (item.is_dir() and 
+            not item.name.startswith('.') and 
+            item.name not in EXCLUDED_DIRS and
+            (item / 'index.html').exists() and 
+            (item / 'translations.csv').exists()):
+            
+            lang_code = item.name.lower()
+            generate_script = item / 'scripts' / f'generate_all_{lang_code}.py'
+            update_script = item / 'scripts' / 'generate' / 'update_domain_urls.py'
+            
+            languages.append({
+                'code': lang_code,
+                'name': LANGUAGE_NAMES.get(lang_code, lang_code.upper()),
+                'generate_script': generate_script,
+                'update_script': update_script,
+                'dir': item
+            })
+    
+    return sorted(languages, key=lambda x: (x['code'] != 'en', x['code']))
 
 def run_script(script_path, lang_name, step_name):
     """Exécute un script."""
@@ -92,13 +113,38 @@ def main():
     print("=" * 70)
     print()
     
-    success_count = 0
-    total_count = len(LANGUAGES)
+    # Détecter automatiquement les langues
+    languages = detect_languages()
     
-    for lang in LANGUAGES:
+    if not languages:
+        print("❌ Aucune langue détectée")
+        print("   Assurez-vous que le dossier principal ou les dossiers de langue")
+        print("   contiennent index.html et translations.csv")
+        sys.exit(1)
+    
+    print(f"✅ {len(languages)} langue(s) détectée(s):")
+    for lang in languages:
+        print(f"   - {lang['name']} ({lang['code']})")
+    print()
+    
+    success_count = 0
+    total_count = len(languages)
+    
+    for lang in languages:
         print(f"\n{'=' * 70}")
         print(f"🌐 {lang['name'].upper()} ({lang['code']})")
         print(f"{'=' * 70}")
+        
+        # Vérifier si les scripts existent
+        if not lang['generate_script'].exists():
+            print(f"  ⚠️  Script de génération non trouvé: {lang['generate_script']}")
+            print(f"     Créez d'abord cette langue avec: python3 create_language_site.py")
+            continue
+        
+        if not lang['update_script'].exists():
+            print(f"  ⚠️  Script de mise à jour des domaines non trouvé: {lang['update_script']}")
+            print(f"     Créez d'abord cette langue avec: python3 create_language_site.py")
+            continue
         
         # Étape 1: Génération
         if not run_script(lang['generate_script'], lang['name'], "Génération"):

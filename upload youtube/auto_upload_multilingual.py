@@ -569,104 +569,104 @@ def main():
     # Boucle simplifiée (une seule langue)
     lang_code = get_lang_code_from_dir(lang_dir)
     lang_name = "Principal (EN)" if lang_dir == ROOT_DIR else lang_code.upper()
-        print(f"\n{'='*70}")
-        print(f"🌍 Langue: {lang_name}")
-        print(f"{'='*70}")
-        
-        # Charger le CSV de cette langue
-        df = load_csv_data(lang_dir)
-        if df is None:
-            print(f"⚠️  Impossible de charger le CSV pour {lang_code}")
+    print(f"\n{'='*70}")
+    print(f"🌍 Langue: {lang_name}")
+    print(f"{'='*70}")
+    
+    # Charger le CSV de cette langue
+    df = load_csv_data(lang_dir)
+    if df is None:
+        print(f"⚠️  Impossible de charger le CSV pour {lang_code}")
+        return
+    
+    # Vérifier si la colonne youtube_url existe et la convertir en string
+    if 'youtube_url' not in df.columns:
+        df['youtube_url'] = ''
+    else:
+        # Convertir en string dès le début pour éviter les problèmes de type
+        df['youtube_url'] = df['youtube_url'].fillna('').astype(str)
+    
+    # Récupérer l'URL du site
+    site_url = get_site_url(lang_dir)
+    print(f"🌐 URL du site: {site_url}")
+    
+    # Chercher la colonne ID (peut être 'id' ou 'product_id')
+    id_col = 'id' if 'id' in df.columns else 'product_id'
+    if id_col not in df.columns:
+        print(f"⚠️  Colonne ID non trouvée dans le CSV (cherché 'id' ou 'product_id')")
+        return
+    
+    # Parcourir les produits
+    products_with_videos = []
+    for _, row in df.iterrows():
+        product_id = str(row.get(id_col, ''))
+        if not product_id:
             continue
         
-        # Vérifier si la colonne youtube_url existe et la convertir en string
-        if 'youtube_url' not in df.columns:
-            df['youtube_url'] = ''
-        else:
-            # Convertir en string dès le début pour éviter les problèmes de type
-            df['youtube_url'] = df['youtube_url'].fillna('').astype(str)
-        
-        # Récupérer l'URL du site
-        site_url = get_site_url(lang_dir)
-        print(f"🌐 URL du site: {site_url}")
-        
-        # Chercher la colonne ID (peut être 'id' ou 'product_id')
-        id_col = 'id' if 'id' in df.columns else 'product_id'
-        if id_col not in df.columns:
-            print(f"⚠️  Colonne ID non trouvée dans le CSV (cherché 'id' ou 'product_id')")
+        # Vérifier si déjà uploadé pour cette langue
+        if is_already_uploaded(tracking_data, lang_code, product_id):
             continue
         
-        # Parcourir les produits
-        products_with_videos = []
-        for _, row in df.iterrows():
-            product_id = str(row.get(id_col, ''))
-            if not product_id:
-                continue
-            
-            # Vérifier si déjà uploadé pour cette langue
-            if is_already_uploaded(tracking_data, lang_code, product_id):
-                continue
-            
-            # Chercher une vidéo dans le dossier du produit
-            product_folder = IMAGES_DIR / product_id
-            video_file = find_video_in_folder(product_folder)
-            
-            if video_file:
-                products_with_videos.append((product_id, video_file))
+        # Chercher une vidéo dans le dossier du produit
+        product_folder = IMAGES_DIR / product_id
+        video_file = find_video_in_folder(product_folder)
         
-        print(f"📹 {len(products_with_videos)} vidéo(s) trouvée(s) pour {lang_code}")
+        if video_file:
+            products_with_videos.append((product_id, video_file))
+    
+    print(f"📹 {len(products_with_videos)} vidéo(s) trouvée(s) pour {lang_code}")
+    
+    # Uploader les vidéos (dans la limite du quota)
+    for product_id, video_file in products_with_videos:
+        # Vérifier le quota
+        if not can_upload_today(tracking_data):
+            if DAILY_QUOTA is not None:
+                print(f"\n⚠️  Quota quotidien atteint ({DAILY_QUOTA} vidéos)")
+                print("   Les vidéos restantes seront uploadées demain automatiquement.")
+            break
         
-        # Uploader les vidéos (dans la limite du quota)
-        for product_id, video_file in products_with_videos:
-            # Vérifier le quota
-            if not can_upload_today(tracking_data):
-                if DAILY_QUOTA is not None:
-                    print(f"\n⚠️  Quota quotidien atteint ({DAILY_QUOTA} vidéos)")
-                    print("   Les vidéos restantes seront uploadées demain automatiquement.")
-                break
+        print(f"\n📹 Produit {product_id}: {video_file.name}")
+        
+        # Récupérer les métadonnées
+        title, description_short = get_product_metadata(df, product_id, lang_code)
+        if not title:
+            print(f"  ⚠️  Titre non trouvé dans le CSV, vidéo ignorée")
+            total_skipped += 1
+            continue
+        
+        # Construire la description
+        description = build_description(product_id, description_short, site_url, lang_code)
+        
+        # Uploader la vidéo
+        youtube_url = upload_video(youtube, video_file, title, description, privacy_status='public')
+        
+        if youtube_url:
+            # Enregistrer dans le tracking
+            record_upload(tracking_data, lang_code, product_id, youtube_url)
             
-            print(f"\n📹 Produit {product_id}: {video_file.name}")
+            # Mettre à jour le CSV
+            id_col = 'id' if 'id' in df.columns else 'product_id'
+            # Trouver l'index du produit (convertir les deux en string pour la comparaison)
+            product_mask = df[id_col].astype(str) == str(product_id)
+            # Mettre à jour l'URL YouTube
+            df.loc[product_mask, 'youtube_url'] = youtube_url
+            # Sauvegarder immédiatement après chaque upload
+            save_csv_data(lang_dir, df)
             
-            # Récupérer les métadonnées
-            title, description_short = get_product_metadata(df, product_id, lang_code)
-            if not title:
-                print(f"  ⚠️  Titre non trouvé dans le CSV, vidéo ignorée")
-                total_skipped += 1
-                continue
-            
-            # Construire la description
-            description = build_description(product_id, description_short, site_url, lang_code)
-            
-            # Uploader la vidéo
-            youtube_url = upload_video(youtube, video_file, title, description, privacy_status='public')
-            
-            if youtube_url:
-                # Enregistrer dans le tracking
-                record_upload(tracking_data, lang_code, product_id, youtube_url)
-                
-                # Mettre à jour le CSV
-                id_col = 'id' if 'id' in df.columns else 'product_id'
-                # Trouver l'index du produit (convertir les deux en string pour la comparaison)
-                product_mask = df[id_col].astype(str) == str(product_id)
-                # Mettre à jour l'URL YouTube
-                df.loc[product_mask, 'youtube_url'] = youtube_url
-                # Sauvegarder immédiatement après chaque upload
-                save_csv_data(lang_dir, df)
-                
-                total_uploaded += 1
-                uploads_today = get_uploads_today(tracking_data)
-                if DAILY_QUOTA is not None:
-                    print(f"  ✅ Upload réussi ({uploads_today}/{DAILY_QUOTA} aujourd'hui)")
-                else:
-                    print(f"  ✅ Upload réussi ({uploads_today} aujourd'hui)")
+            total_uploaded += 1
+            uploads_today = get_uploads_today(tracking_data)
+            if DAILY_QUOTA is not None:
+                print(f"  ✅ Upload réussi ({uploads_today}/{DAILY_QUOTA} aujourd'hui)")
             else:
-                total_errors += 1
-                print(f"  ❌ Échec de l'upload")
-        
-        # Compter les vidéos ignorées (déjà uploadées)
-        skipped = sum(1 for pid, _ in products_with_videos 
-                     if is_already_uploaded(tracking_data, lang_code, pid))
-        total_skipped += skipped
+                print(f"  ✅ Upload réussi ({uploads_today} aujourd'hui)")
+        else:
+            total_errors += 1
+            print(f"  ❌ Échec de l'upload")
+    
+    # Compter les vidéos ignorées (déjà uploadées)
+    skipped = sum(1 for pid, _ in products_with_videos 
+                 if is_already_uploaded(tracking_data, lang_code, pid))
+    total_skipped += skipped
     
     # Sauvegarder le tracking
     save_tracking(tracking_data)

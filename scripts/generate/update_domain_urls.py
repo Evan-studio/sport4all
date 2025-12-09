@@ -111,6 +111,7 @@ def find_old_domain_in_content(content):
         r'https?://votresite\.com',
         r'https?://localhost:\d+',
         r'https?://makita-shop\.pages\.dev',
+        r'https?://uni-ion\.com',
     ]
     
     for pattern in known_patterns:
@@ -123,7 +124,8 @@ def find_old_domain_in_content(content):
     if url_match:
         url = url_match.group(0)
         # Vérifier que ce n'est pas un lien externe (aliexpress, google, etc.)
-        if 'aliexpress.com' not in url and 'google.com' not in url and 'policies.google.com' not in url:
+        external_domains = ['aliexpress.com', 'google.com', 'policies.google.com', 'youtube.com', 'schema.org']
+        if not any(domain in url for domain in external_domains):
             return extract_base_domain(url)
     
     return None
@@ -160,19 +162,36 @@ def update_index_html(new_domain):
 
 def update_generated_pages(new_domain):
     """Met à jour toutes les URLs dans les pages générées."""
-    pages_dirs = [
-        BASE_DIR / 'page_html' / 'categories',
-        BASE_DIR / 'page_html' / 'products',
-        BASE_DIR / 'page_html' / 'legal',
-    ]
+    # Détecter toutes les langues (dossier principal + dossiers de langue)
+    lang_dirs = []
+    
+    # Ajouter le dossier principal
+    if (BASE_DIR / 'index.html').exists():
+        lang_dirs.append(BASE_DIR)
+    
+    # Ajouter les dossiers de langue
+    for item in BASE_DIR.iterdir():
+        if (item.is_dir() and not item.name.startswith('.') and 
+            item.name not in ['APPLI:SCRIPT aliexpress', 'scripts', 'config', 'images', 'page_html', 
+                              'upload_cloudflare', 'sauv', 'CSV', '__pycache__', '.git', 'node_modules', 'upload youtube'] and
+            (item / 'index.html').exists()):
+            lang_dirs.append(item)
     
     updated_count = 0
     
-    for pages_dir in pages_dirs:
-        if not pages_dir.exists():
-            continue
+    # Traiter chaque langue
+    for lang_dir in lang_dirs:
+        pages_dirs = [
+            lang_dir / 'page_html' / 'categories',
+            lang_dir / 'page_html' / 'products',
+            lang_dir / 'page_html' / 'legal',
+        ]
         
-        html_files = list(pages_dir.rglob('*.html'))
+        for pages_dir in pages_dirs:
+            if not pages_dir.exists():
+                continue
+            
+            html_files = list(pages_dir.rglob('*.html'))
         for html_file in html_files:
             try:
                 content = html_file.read_text(encoding='utf-8')
@@ -183,6 +202,91 @@ def update_generated_pages(new_domain):
                 
                 if old_domain and old_domain != new_domain:
                     content = update_urls_in_content(content, old_domain, new_domain)
+                
+                # Corriger les URLs génériques dans les hreflang (produit.html -> produit-{id}.html)
+                # Seulement pour les pages produits
+                if pages_dir.name == 'products' and html_file.name.startswith('produit-'):
+                    # Extraire le product_id du nom de fichier
+                    product_id_match = re.search(r'produit-(\d+)\.html', html_file.name)
+                    if product_id_match:
+                        product_id = product_id_match.group(1)
+                        product_filename = f'produit-{product_id}.html'
+                        
+                        # Détecter la langue depuis le chemin du fichier
+                        # Exemple: fr/page_html/products/produit-123.html -> fr
+                        lang_code = None
+                        file_path_parts = html_file.relative_to(BASE_DIR).parts
+                        if len(file_path_parts) >= 2:
+                            potential_lang = file_path_parts[0]
+                            if len(potential_lang) == 2 and potential_lang.isalpha():
+                                lang_code = potential_lang
+                        
+                        # Construire les vraies URLs pour chaque langue
+                        domain = load_domain_from_csv()
+                        if domain:
+                            domain = domain.rstrip('/')
+                            
+                            # Détecter toutes les langues disponibles
+                            available_languages = []
+                            if (BASE_DIR / 'index.html').exists():
+                                available_languages.append('en')
+                            
+                            for item in BASE_DIR.iterdir():
+                                if (item.is_dir() and not item.name.startswith('.') and 
+                                    item.name not in ['APPLI:SCRIPT aliexpress', 'scripts', 'config', 'images', 'page_html', 
+                                                      'upload_cloudflare', 'sauv', 'CSV', '__pycache__', '.git', 'node_modules', 'upload youtube'] and
+                                    (item / 'index.html').exists()):
+                                    available_languages.append(item.name.lower())
+                            
+                            # Remplacer les URLs génériques par les vraies URLs
+                            for lang in available_languages:
+                                if lang == 'en':
+                                    correct_url = f'{domain}/page_html/products/{product_filename}'
+                                else:
+                                    correct_url = f'{domain}/{lang}/page_html/products/{product_filename}'
+                                
+                                # Remplacer les URLs génériques dans les hreflang
+                                generic_pattern = rf'(<link[^>]+hreflang="{lang}"[^>]+href="){domain}/{lang}/produit\.html"'
+                                content = re.sub(generic_pattern, rf'\1{correct_url}"', content)
+                                
+                                # Remplacer aussi les URLs avec /en/produit.html ou /fr/produit.html
+                                generic_pattern2 = rf'(<link[^>]+hreflang="{lang}"[^>]+href="){domain}/(?:{lang}/)?produit\.html"'
+                                content = re.sub(generic_pattern2, rf'\1{correct_url}"', content)
+                            
+                            # Corriger aussi x-default
+                            if lang_code:
+                                if lang_code == 'en':
+                                    default_url = f'{domain}/page_html/products/{product_filename}'
+                                else:
+                                    default_url = f'{domain}/{lang_code}/page_html/products/{product_filename}'
+                                
+                                content = re.sub(
+                                    rf'(<link[^>]+hreflang="x-default"[^>]+href="){domain}/[^"]*produit\.html"',
+                                    rf'\1{default_url}"',
+                                    content
+                                )
+                            
+                            # Ajouter ou corriger le canonical
+                            if lang_code == 'en':
+                                canonical_url = f'{domain}/page_html/products/{product_filename}'
+                            else:
+                                canonical_url = f'{domain}/{lang_code}/page_html/products/{product_filename}'
+                            
+                            canonical_tag = f'<link rel="canonical" href="{canonical_url}" />'
+                            
+                            if re.search(r'<link rel="canonical"', content):
+                                content = re.sub(
+                                    r'<link rel="canonical" href="[^"]*" />',
+                                    canonical_tag,
+                                    content
+                                )
+                            else:
+                                # Ajouter le canonical avant les hreflang
+                                content = re.sub(
+                                    r'(<link rel="alternate" hreflang)',
+                                    canonical_tag + '\n\\1',
+                                    content
+                                )
                 
                 if content != original_content:
                     html_file.write_text(content, encoding='utf-8')
