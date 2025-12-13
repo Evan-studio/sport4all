@@ -88,21 +88,15 @@ def get_translation(key, translations, default=''):
     return translations.get(key, default)
 
 def update_favicon_absolute(html, translations):
-    """Met à jour la favicon avec une URL absolue pour Google."""
-    domain = get_translation('site.domain', translations, 'https://bafang-shop.com')
-    if domain:
-        domain = domain.rstrip('/')
-    
-    favicon_url = f'{domain}/images/favicon/favicon.ico'
-    
-    # Remplacer tous les chemins relatifs de favicon par l'URL absolue
+    """Met à jour la favicon avec un chemin racine (compatible local + prod)."""
+    favicon_url = "/images/favicon/favicon.ico"
+    # Remplacer tous les chemins de favicon par le chemin racine
     html = re.sub(
         r'<link rel="icon"[^>]*href="[^"]*favicon[^"]*"[^>]*>',
         f'<link rel="icon" type="image/x-icon" href="{favicon_url}">',
         html,
         flags=re.IGNORECASE
     )
-    
     # Ajouter aussi apple-touch-icon si nécessaire
     if '<link rel="apple-touch-icon"' not in html:
         html = re.sub(
@@ -111,7 +105,6 @@ def update_favicon_absolute(html, translations):
             html,
             flags=re.IGNORECASE
         )
-    
     return html
 
 def escape_html_attr(text):

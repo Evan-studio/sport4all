@@ -6,6 +6,8 @@ Usage: python3 update_github_auto.py [message de commit]
 
 import subprocess
 import sys
+import json
+from pathlib import Path
 from datetime import datetime
 
 # Couleurs pour le terminal
@@ -66,12 +68,49 @@ def get_changes_summary():
         return output.split('\n') if output else []
     return []
 
+def ensure_remote():
+    """
+    Lit git_remote_config.json (user/repo) et s'assure que origin pointe vers ce dépôt.
+    Si le fichier est absent, ne fait rien.
+    """
+    config_path = Path(__file__).parent / "git_remote_config.json"
+    if not config_path.exists():
+        return True  # rien à faire
+    try:
+        data = json.loads(config_path.read_text(encoding="utf-8"))
+        user = data.get("user", "").strip()
+        repo = data.get("repo", "").strip()
+        if not user or not repo:
+            print_warning("git_remote_config.json : user ou repo manquant, aucune mise à jour du remote.")
+            return True
+        target = f"https://github.com/{user}/{repo}.git"
+        # Récupérer le remote actuel
+        success, current, _ = run_command("git remote get-url origin", check=False)
+        if success and current.strip() == target:
+            print_info(f"Remote déjà configuré : {target}")
+            return True
+        print_info(f"Configuration du remote origin vers {target}...")
+        # Supprimer origin si présent, puis ajouter
+        run_command("git remote remove origin", check=False)
+        ok, _, err = run_command(f'git remote add origin "{target}"', check=False)
+        if not ok:
+            print_error(f"Impossible de configurer origin : {err}")
+            return False
+        print_success(f"Remote origin configuré : {target}")
+        return True
+    except Exception as e:
+        print_warning(f"Impossible de lire git_remote_config.json : {e}")
+        return True
+
 def main():
     """Fonction principale."""
     print("=" * 70)
     print_header("🚀 MISE À JOUR AUTOMATIQUE VERS GITHUB")
     print("=" * 70)
     print()
+    
+    if not ensure_remote():
+        sys.exit(1)
     
     # Vérifier qu'on est dans un dépôt Git
     if not check_git_repo():
