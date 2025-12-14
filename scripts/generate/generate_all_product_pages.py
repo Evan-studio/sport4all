@@ -189,8 +189,8 @@ def get_footer_items_from_csv(translations, page_type='product'):
         if not text:
             continue
         
-        slug = slugify(text)
-        footer_items.append({'text': text, 'url': f"../legal/{slug}.html"})
+        legal_slug = footer_key.replace('footer.link.', '')
+        footer_items.append({'text': text, 'url': f"../legal/{legal_slug}.html"})
     
     return footer_items
 
