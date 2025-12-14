@@ -136,7 +136,7 @@ def get_site_url(lang_dir):
             print(f"⚠️  Erreur lors de la lecture de translations.csv: {e}")
     
     # Fallback
-    return "https://bafang-shop.com"
+    return "https://esport4all.com"
 
 def get_lang_code_from_dir(lang_dir):
     """Retourne le code de langue depuis le dossier."""

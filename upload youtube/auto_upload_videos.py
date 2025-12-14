@@ -24,6 +24,7 @@ IMAGES_DIR = BASE_DIR / 'images' / 'products'  # Dossier images/products
 CSV_FILE = BASE_DIR / 'CSV' / 'all_products.csv'  # CSV dans le dossier CSV
 CLIENT_SECRETS_FILE = Path(__file__).parent / 'client_secret_938787798816-u7frdh82p7pckpj8hodtr3i1ss3fcjfu.apps.googleusercontent.com.json'
 CREDENTIALS_FILE = Path(__file__).parent / 'credentials.json'
+TRACKING_FILE = Path(__file__).parent / 'upload_tracking.json'
 
 # Scopes nécessaires pour uploader des vidéos
 SCOPES = ['https://www.googleapis.com/auth/youtube.upload']
@@ -45,7 +46,42 @@ def get_site_url():
             print(f"⚠️  Erreur lors de la lecture de translations.csv: {e}")
     
     # Fallback
-    return "https://uni-ion.com"
+    return "https://esport4all.com"
+
+def load_tracking():
+    """Charge le fichier de suivi des uploads pour éviter les doublons."""
+    if not TRACKING_FILE.exists():
+        return {}
+    try:
+        import json
+        with open(TRACKING_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            done = set()
+            for k, v in (data.get('uploads') or {}).items():
+                # clés possibles : "en_<product_id>" ou juste product_id
+                if isinstance(k, str) and '_' in k:
+                    pid = k.split('_', 1)[1]
+                else:
+                    pid = k
+                if not pid and isinstance(v, dict):
+                    pid = v.get('product_id') or ''
+                if pid:
+                    done.add(str(pid))
+            return done
+    except Exception as e:
+        print(f"⚠️  Erreur lors du chargement du tracking: {e}")
+        return {}
+
+def save_tracking(done_ids):
+    """Sauvegarde les product_id déjà uploadés dans le tracking."""
+    try:
+        import json
+        uploads = {pid: {"product_id": pid} for pid in sorted(done_ids)}
+        payload = {"uploads": uploads}
+        TRACKING_FILE.write_text(json.dumps(payload, indent=2), encoding='utf-8')
+        print(f"💾 Tracking mis à jour: {TRACKING_FILE}")
+    except Exception as e:
+        print(f"⚠️  Erreur lors de la sauvegarde du tracking: {e}")
 
 def get_authenticated_service():
     """Authentifie l'utilisateur et retourne le service YouTube."""
@@ -305,12 +341,30 @@ def main():
     uploaded_count = 0
     skipped_count = 0
     error_count = 0
+
+    # Déjà uploadés (tracking + CSV existant)
+    already_uploaded_ids = load_tracking()
+    csv_done = set(
+        df.loc[
+            df['youtube_url'].fillna('').astype(str).str.strip() != '',
+            'product_id'
+        ].astype(str)
+    )
+    if csv_done:
+        print(f"ℹ️  {len(csv_done)} vidéos déjà marquées dans le CSV")
+    already_uploaded_ids |= csv_done
     
     for product_dir in sorted(IMAGES_DIR.iterdir()):
         if not product_dir.is_dir():
             continue
         
         product_id = str(product_dir.name).strip()
+
+        # Si déjà uploadé d'après tracking, on saute
+        if product_id in already_uploaded_ids:
+            print(f"⏭️  Produit {product_id}: déjà marqué comme uploadé (tracking), ignoré")
+            skipped_count += 1
+            continue
         
         # Vérifier si ce produit existe dans le CSV
         product_row = df[df['product_id'].astype(str) == product_id]
@@ -371,6 +425,10 @@ def main():
         if youtube_url:
             # Mettre à jour le CSV
             df.at[row_index, 'youtube_url'] = youtube_url
+            already_uploaded_ids.add(product_id)
+            # Sauvegarde immédiate pour ne pas perdre en cas d'arrêt brutal
+            save_csv_data(df)
+            save_tracking(already_uploaded_ids)
             uploaded_count += 1
             print()
         else:
@@ -380,6 +438,7 @@ def main():
     # Sauvegarder le CSV
     print("💾 Sauvegarde du CSV...")
     if save_csv_data(df):
+        save_tracking(already_uploaded_ids)
         print()
         print("=" * 70)
         print("📊 RÉSUMÉ")
