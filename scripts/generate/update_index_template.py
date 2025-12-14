@@ -210,15 +210,24 @@ def update_canonical_and_hreflang(html, translations):
     else:
         canonical_url = f'{domain}/{lang_code}/'
     
-    # Générer les hreflang pour toutes les langues
+    # Générer les hreflang pour toutes les langues détectées automatiquement
     hreflang_links = []
-    languages = [
-        ('en', ''),
-        ('fr', '/fr'),
-        ('de', '/de'),
-        ('es', '/es'),
-        ('pt', '/pt')
-    ]
+    root_dir = BASE_DIR
+    # Si le script est exécuté depuis un dossier de langue (fr/, de/, pl/...), remonter à la racine
+    if len(BASE_DIR.name) == 2 and BASE_DIR.name.isalpha():
+        root_dir = BASE_DIR.parent
+    languages = []
+    if (root_dir / 'index.html').exists():
+        languages.append(('en', ''))
+    for item in sorted(root_dir.iterdir(), key=lambda p: p.name.lower()):
+        if (item.is_dir()
+            and not item.name.startswith('.')
+            and item.name not in ['APPLI:SCRIPT aliexpress', 'scripts', 'config', 'images', 'page_html',
+                                  'upload_cloudflare', 'sauv', 'CSV', '__pycache__', '.git', 'node_modules',
+                                  'upload youtube']
+            and (item / 'index.html').exists()):
+            lang = item.name.lower()
+            languages.append((lang, f'/{lang}'))
     
     for lang, path in languages:
         hreflang_url = f'{domain}{path}/'
