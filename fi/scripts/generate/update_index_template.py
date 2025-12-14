@@ -179,9 +179,8 @@ def load_footer_links_from_csv(translations):
         if not text:
             continue
         
-        # Créer le slug depuis le texte
-        # Exemple: "Terms of Use" → "terms-of-use"
-        slug = slugify(text)
+        # Slug stable basé sur la clé (footer.link.X → X)
+        slug = footer_key.replace('footer.link.', '')
         
         footer_links.append({
             'key': footer_key,

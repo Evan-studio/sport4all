@@ -9751,49 +9751,25 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://esport4all.com/fr/page_html/legal/a-propos-de-nous</loc>
+    <loc>https://esport4all.com/fr/page_html/legal/aboutus</loc>
     <lastmod>2025-12-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://esport4all.com/fr/page_html/legal/about-us</loc>
+    <loc>https://esport4all.com/fr/page_html/legal/conditions</loc>
     <lastmod>2025-12-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://esport4all.com/fr/page_html/legal/avis-juridique</loc>
+    <loc>https://esport4all.com/fr/page_html/legal/mentions</loc>
     <lastmod>2025-12-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://esport4all.com/fr/page_html/legal/conditions-dutilisation</loc>
-    <lastmod>2025-12-14</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://esport4all.com/fr/page_html/legal/legal-notice</loc>
-    <lastmod>2025-12-14</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://esport4all.com/fr/page_html/legal/politique-de-confidentialite</loc>
-    <lastmod>2025-12-14</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://esport4all.com/fr/page_html/legal/privacy-policy</loc>
-    <lastmod>2025-12-14</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://esport4all.com/fr/page_html/legal/terms-of-use</loc>
+    <loc>https://esport4all.com/fr/page_html/legal/policy</loc>
     <lastmod>2025-12-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>

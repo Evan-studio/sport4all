@@ -374,11 +374,11 @@ def get_footer_items_from_csv(translations, page_type='category'):
         if not text:
             continue
         
-        slug = slugify(text)
+        legal_slug = footer_key.replace('footer.link.', '')
         if page_type == 'category':
-            footer_items.append({'text': text, 'url': f"../legal/{slug}.html"})
+            footer_items.append({'text': text, 'url': f"../legal/{legal_slug}.html"})
         else:  # legal
-            footer_items.append({'text': text, 'url': f"{slug}.html"})  # Même dossier
+            footer_items.append({'text': text, 'url': f"{legal_slug}.html"})  # Même dossier
     
     return footer_items
 
@@ -543,9 +543,9 @@ def generate_legal_page(legal_key, legal_text, translations):
     html = re.sub(r'<title>.*?</title>', f'<title>{escape_html_attr(legal_title)}</title>', html)
     html = re.sub(r'<meta name="description"[^>]*>', f'<meta name="description" content="{escape_html_attr(legal_description)}">', html)
     
-    # Ajouter canonical et hreflang pour les pages légales
-    legal_slug_for_url = slugify(legal_text)
-    html = add_canonical_and_hreflang(html, translations, f'page_html/legal/{legal_slug_for_url}.html')
+    # Ajouter canonical et hreflang pour les pages légales (slug stable basé sur la clé)
+    page_path = f'page_html/legal/{legal_slug}.html'
+    html = add_canonical_and_hreflang(html, translations, page_path)
     
     # Remplacer la section main avec mise en forme HTML
     content_html = f'<section>\n<h1>{escape_html_attr(legal_title)}</h1>\n'
@@ -770,8 +770,8 @@ def main():
         if not legal_text:
             continue
         
-        slug = slugify(legal_text)
-        page_path = LEGAL_DIR / f"{slug}.html"
+        legal_slug = footer_key.replace('footer.link.', '')
+        page_path = LEGAL_DIR / f"{legal_slug}.html"
         
         if page_path.exists():
             print(f"  ✓ {page_path.name} existe - Mise à jour menu/footer/contenu depuis CSV...")
@@ -798,8 +798,7 @@ def main():
             html_content = re.sub(r'<meta name="description"[^>]*>', f'<meta name="description" content="{escape_html_attr(legal_description)}">', html_content, flags=re.DOTALL)
             
             # Ajouter canonical et hreflang pour les pages légales (mise à jour)
-            legal_slug_for_url = slugify(legal_text)
-            html_content = add_canonical_and_hreflang(html_content, translations, f'page_html/legal/{legal_slug_for_url}.html')
+            html_content = add_canonical_and_hreflang(html_content, translations, f'page_html/legal/{legal_slug}.html')
             
             # Mettre à jour le contenu (h1 et main) avec la même logique que generate_legal_page
             if legal_content:

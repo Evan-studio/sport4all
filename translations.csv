@@ -60,7 +60,7 @@ legal.mentions.meta.description,Description SEO Mentions légales,Legal notices 
 legal.policy.meta.description,Description SEO Politique,AliExpress Affiliate Site Privacy Policy
 legal.aboutus.meta.description,Description SEO About us,"Learn more about Sport4All, a platform promoting sports, fitness, outdoor, and leisure equipment sourced directly from manufacturers through trusted partners, offering factory-level prices for everyone."
 ,,
-legal.conditions.content,,"<h1>Terms of Use - AliExpress Affiliate Program</h1>
+legal.conditions.content,,"
 <p style=""margin-bottom: 2rem;"">Terms of Use Last updated: 2024</p>
 <p style=""margin-bottom: 2rem;"">1. Acceptance of Terms By accessing and using this website, you agree to be bound by these terms of use. If you do not agree to these terms, please do not use this site.</p>
 <p style=""margin-bottom: 2rem;"">2. Description of Service This site is an affiliate site that provides links to products available on AliExpress. We do not sell the products directly, but earn a commission on sales made through our affiliate links.</p>
@@ -71,7 +71,7 @@ legal.conditions.content,,"<h1>Terms of Use - AliExpress Affiliate Program</h1>
 <p style=""margin-bottom: 2rem;"">7. Contact For any questions regarding these terms of use, you can contact us at: contact@evanstudio.com</p>
 "
 ,,
-legal.mentions.content,,"<h1>Legal Notice - AliExpress Affiliate Program</h1>
+legal.mentions.content,,"
 <p>Last updated: 2024</p>
 <h2>1. Website Publisher</h2>
 <ul>
@@ -97,7 +97,7 @@ legal.mentions.content,,"<h1>Legal Notice - AliExpress Affiliate Program</h1>
 <p>For any questions regarding these legal notices, you can contact us at: contact@evanstudio.com</p>
 "
 ,,
-legal.policy.content,,"<h1>Privacy Policy - AliExpress Affiliate Program</h1>
+legal.policy.content,,"
 <p>Last updated: 2024</p>
 <h2>1. Introduction</h2>
 <p>This privacy policy describes how we collect, use, and protect your personal information when you use our website.</p>
@@ -142,7 +142,7 @@ legal.policy.content,,"<h1>Privacy Policy - AliExpress Affiliate Program</h1>
 ,,
 ,,
 ,,
-legal.aboutus.content,,"<h1>About Sport4All</h1>
+legal.aboutus.content,,"
 
 <p>
 Sport4All was created with a simple goal: <strong>make sports, fitness, and outdoor equipment accessible to everyone at fair prices</strong>.
