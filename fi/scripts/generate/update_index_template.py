@@ -270,6 +270,8 @@ def update_meta_tags(html, translations):
     site_title = get_translation('site.meta.title', translations, 'AliExpress Affiliate Program - Best Products')
     site_description = get_translation('site.meta.description', translations, 'Discover the best AliExpress products')
     contact_email = get_translation('site.contact.email', translations, 'contact@naturehike-shop.com')
+    domain = get_translation('site.domain', translations, 'https://votresite.com')
+    domain = domain.rstrip('/') if domain else 'https://votresite.com'
     
     # Mettre à jour le <title>
     html = re.sub(r'<title>.*?</title>', f'<title>{escape_html_attr(site_title)}</title>', html, flags=re.DOTALL)
@@ -283,7 +285,7 @@ def update_meta_tags(html, translations):
     
     # Mettre à jour le schema.org JSON-LD avec l'email depuis CSV
     schema_pattern = r'<script type="application/ld\+json">\s*\{[^}]*"email":\s*"[^"]*"[^}]*\}\s*</script>'
-    schema_json = f'{{"@context": "https://schema.org", "@type": "Organization", "name": "Affiliation AliExpress", "url": "https://votresite.com", "contactPoint": {{"@type": "ContactPoint", "email": "{escape_html_attr(contact_email)}", "contactType": "Customer Service"}}}}'
+    schema_json = f'{{"@context": "https://schema.org", "@type": "Organization", "name": "Affiliation AliExpress", "url": "{escape_html_attr(domain)}", "contactPoint": {{"@type": "ContactPoint", "email": "{escape_html_attr(contact_email)}", "contactType": "Customer Service"}}}}'
     html = re.sub(
         schema_pattern,
         f'<script type="application/ld+json">\n{schema_json}\n</script>',
