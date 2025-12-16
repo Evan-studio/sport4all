@@ -296,6 +296,40 @@ def update_meta_tags(html, translations):
     print(f"  ✅ Meta tags et schema.org mis à jour")
     return html
 
+def update_favicon_absolute(html, translations):
+    """Met à jour la favicon avec une URL absolue (comme bafang) pour que Google la trouve."""
+    domain = get_translation('site.domain', translations, 'https://votresite.com')
+    domain = domain.rstrip('/') if domain else 'https://votresite.com'
+    favicon_url = f"{domain}/images/favicon/favicon.ico"
+    
+    # Remplacer tous les liens favicon par l'URL absolue
+    # Pattern pour capturer tous les types de liens favicon
+    html = re.sub(
+        r'<link rel="icon"[^>]*href="[^"]*"[^>]*>',
+        f'<link rel="icon" type="image/x-icon" href="{escape_html_attr(favicon_url)}">',
+        html
+    )
+    
+    # Mettre à jour apple-touch-icon aussi
+    html = re.sub(
+        r'<link rel="apple-touch-icon"[^>]*href="[^"]*"[^>]*>',
+        f'<link rel="apple-touch-icon" href="{escape_html_attr(favicon_url)}">',
+        html
+    )
+    
+    # S'assurer qu'il y a au moins un lien favicon (ajouter si manquant)
+    if 'rel="icon"' not in html:
+        # Insérer après <head>
+        html = re.sub(
+            r'(<head>)',
+            r'\1\n<link rel="icon" type="image/x-icon" href="' + escape_html_attr(favicon_url) + '">\n<link rel="apple-touch-icon" href="' + escape_html_attr(favicon_url) + '">',
+            html,
+            count=1
+        )
+    
+    print(f"  ✅ Favicon mise à jour avec URL absolue: {favicon_url}")
+    return html
+
 def update_lang_attribute(html):
     """S'assure que la page est en anglais."""
     html = re.sub(r'<html lang="[^"]*"', '<html lang="fr"', html)
@@ -972,6 +1006,7 @@ def main():
     html = update_lang_attribute(html)
     html = update_canonical_and_hreflang(html, translations)
     html = update_meta_tags(html, translations)
+    html = update_favicon_absolute(html, translations)
     html = update_logo_link(html)
     html = update_menu(html, translations)
     html = update_categories_section(html, translations)
