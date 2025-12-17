@@ -1,6 +1,51 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3WY9D1Z3G3"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const menuToggle = document.getElementById('menu-toggle');
+    const menu = document.getElementById('menu');
+    if (menuToggle && menu) {
+        menuToggle.addEventListener('click', function() {
+            menu.classList.toggle('active');
+        });
+    }
+    
+    window.showImage = function(imgSrc, evt) {
+        const mainImg = document.getElementById('main-image');
+        const mainVid = document.getElementById('main-video');
+        if (mainImg) {
+            mainImg.src = imgSrc;
+            mainImg.style.display = 'block';
+        }
+        if (mainVid) {
+            mainVid.style.display = 'none';
+        }
+        document.querySelectorAll('.thumbnail,.thumbnail-video').forEach(t => t.classList.remove('active'));
+        if (evt && evt.target) {
+            evt.target.closest('.thumbnail,.thumbnail-video')?.classList.add('active');
+        }
+    };
+    
+    window.showVideo = function(evt) {
+        const mainImg = document.getElementById('main-image');
+        const mainVid = document.getElementById('main-video');
+        if (mainImg) {
+            mainImg.style.display = 'none';
+        }
+        if (mainVid) {
+            mainVid.style.display = 'block';
+        }
+        document.querySelectorAll('.thumbnail,.thumbnail-video').forEach(t => t.classList.remove('active'));
+        if (evt && evt.target) {
+            evt.target.closest('.thumbnail-video')?.classList.add('active');
+        }
+    };
+});
+</script>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="Récupérez votre véhicule en toute sécurité grâce à notre kit de corde cinétique ultra-résistante, d&#x27;une longueur de 6 m, d&#x27;un diamètre de 25 mm et d&#x27;une résistance à la rupture de 15 tonnes, pour une assistance fiable en cas d&#x27;urgence hors route.">

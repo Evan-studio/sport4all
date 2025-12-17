@@ -151,6 +151,32 @@ def add_canonical_and_hreflang(html, translations, page_path):
     return html
 
 def escape_html_attr(text):
+
+def add_google_analytics(html):
+    """Ajoute le code Google Analytics dans le <head>."""
+    google_analytics_code = '<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3WY9D1Z3G3"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3WY9D1Z3G3');
+</script>'
+    
+    # Vérifier si Google Analytics est déjà présent
+    if 'G-3WY9D1Z3G3' in html:
+        return html
+    
+    # Insérer le code juste après <head>
+    if re.search(r'<head>', html):
+        html = re.sub(
+            r'(<head>)',
+            r'\1\n' + google_analytics_code + '\n',
+            html,
+            count=1
+        )
+    
+    return html
     """Échappe les caractères spéciaux pour les attributs HTML."""
     if not text:
         return ""
@@ -480,6 +506,9 @@ def generate_category_page(category_slug, category_name, translations, all_produ
     # Ajouter canonical et hreflang pour les pages catégories
     html = add_canonical_and_hreflang(html, translations, f'page_html/categories/{category_slug}.html')
     
+    # Ajouter Google Analytics
+    html = add_google_analytics(html)
+    
     # Mettre à jour les infos de la catégorie
     # Utiliser le numéro (category_slug est maintenant un numéro)
     category_title = get_translation(f'meta.title.menu.{category_slug}', translations, f'{category_name} - AliExpress Affiliate')
@@ -546,6 +575,9 @@ def generate_legal_page(legal_key, legal_text, translations):
     # Ajouter canonical et hreflang pour les pages légales (slug stable basé sur la clé)
     page_path = f'page_html/legal/{legal_slug}.html'
     html = add_canonical_and_hreflang(html, translations, page_path)
+    
+    # Ajouter Google Analytics
+    html = add_google_analytics(html)
     
     # Remplacer la section main avec mise en forme HTML
     content_html = f'<section>\n<h1>{escape_html_attr(legal_title)}</h1>\n'

@@ -1,6 +1,51 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3WY9D1Z3G3"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const menuToggle = document.getElementById('menu-toggle');
+    const menu = document.getElementById('menu');
+    if (menuToggle && menu) {
+        menuToggle.addEventListener('click', function() {
+            menu.classList.toggle('active');
+        });
+    }
+    
+    window.showImage = function(imgSrc, evt) {
+        const mainImg = document.getElementById('main-image');
+        const mainVid = document.getElementById('main-video');
+        if (mainImg) {
+            mainImg.src = imgSrc;
+            mainImg.style.display = 'block';
+        }
+        if (mainVid) {
+            mainVid.style.display = 'none';
+        }
+        document.querySelectorAll('.thumbnail,.thumbnail-video').forEach(t => t.classList.remove('active'));
+        if (evt && evt.target) {
+            evt.target.closest('.thumbnail,.thumbnail-video')?.classList.add('active');
+        }
+    };
+    
+    window.showVideo = function(evt) {
+        const mainImg = document.getElementById('main-image');
+        const mainVid = document.getElementById('main-video');
+        if (mainImg) {
+            mainImg.style.display = 'none';
+        }
+        if (mainVid) {
+            mainVid.style.display = 'block';
+        }
+        document.querySelectorAll('.thumbnail,.thumbnail-video').forEach(t => t.classList.remove('active'));
+        if (evt && evt.target) {
+            evt.target.closest('.thumbnail-video')?.classList.add('active');
+        }
+    };
+});
+</script>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="Profitez d&#x27;une pêche confortable grâce à notre auvent pour chaise de kayak LSF, offrant une protection solaire, une conception polyvalente et une installation facile pour les pêcheurs de tous niveaux.">

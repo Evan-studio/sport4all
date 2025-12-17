@@ -321,6 +321,36 @@ def update_favicon_absolute(html, translations):
     print(f"  ✅ Favicon mise à jour avec URL absolue: {favicon_url}")
     return html
 
+def add_google_analytics(html):
+    """Ajoute le code Google Analytics dans le <head>."""
+    google_analytics_code = '''<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3WY9D1Z3G3"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3WY9D1Z3G3');
+</script>'''
+    
+    # Vérifier si Google Analytics est déjà présent
+    if 'G-3WY9D1Z3G3' in html:
+        print(f"  ✅ Google Analytics déjà présent")
+        return html
+    
+    # Insérer le code juste après <head> ou après les meta tags
+    if re.search(r'<head>', html):
+        html = re.sub(
+            r'(<head>)',
+            r'\1\n' + google_analytics_code + '\n',
+            html,
+            count=1
+        )
+        print(f"  ✅ Google Analytics ajouté dans le <head>")
+    else:
+        print(f"  ⚠️  Balise <head> non trouvée, Google Analytics non ajouté")
+    
+    return html
+
 def update_lang_attribute(html):
     """S'assure que la page est en anglais."""
     html = re.sub(r'<html lang="[^"]*"', '<html lang="de"', html)
@@ -998,6 +1028,7 @@ def main():
     html = update_canonical_and_hreflang(html, translations)
     html = update_meta_tags(html, translations)
     html = update_favicon_absolute(html, translations)
+    html = add_google_analytics(html)
     html = update_logo_link(html)
     html = update_menu(html, translations)
     html = update_categories_section(html, translations)

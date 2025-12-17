@@ -107,6 +107,32 @@ def update_favicon_absolute(html, translations):
         )
     return html
 
+def add_google_analytics(html):
+    """Ajoute le code Google Analytics dans le <head>."""
+    google_analytics_code = '''<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3WY9D1Z3G3"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3WY9D1Z3G3');
+</script>'''
+    
+    # Vérifier si Google Analytics est déjà présent
+    if 'G-3WY9D1Z3G3' in html:
+        return html
+    
+    # Insérer le code juste après <head>
+    if re.search(r'<head>', html):
+        html = re.sub(
+            r'(<head>)',
+            r'\1\n' + google_analytics_code + '\n',
+            html,
+            count=1
+        )
+    
+    return html
+
 def escape_html_attr(text):
     """Échappe les caractères spéciaux pour les attributs HTML."""
     if not text:
@@ -402,6 +428,8 @@ def generate_product_page_html(product, translations):
     
     # 3. Mettre à jour la favicon avec URL absolue
     html = update_favicon_absolute(html, translations)
+    # 4. Ajouter Google Analytics
+    html = add_google_analytics(html)
     
     # 4. Mettre à jour le logo (chemin relatif)
     # Le template peut avoir un logo vide ou avec href
