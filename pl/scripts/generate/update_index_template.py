@@ -297,6 +297,30 @@ def update_meta_tags(html, translations):
     return html
 
 def update_favicon_absolute(html, translations):
+    """Met à jour la favicon avec une URL absolue pour Google (comme PrestaShop)."""
+    domain = get_translation('site.domain', translations, 'https://sport4all.com')
+    domain = domain.rstrip('/') if domain else 'https://sport4all.com'
+    favicon_url = f"{domain}/images/favicon/favicon.ico"
+    
+    # Supprimer toutes les anciennes balises favicon
+    html = re.sub(
+        r'<link rel="(icon|shortcut icon|apple-touch-icon)"[^>]*>',
+        '',
+        html,
+        flags=re.IGNORECASE
+    )
+    
+    # Ajouter toutes les balises favicon nécessaires pour Google (comme PrestaShop)
+    favicon_tags = f'<link rel="icon" type="image/vnd.microsoft.icon" href="{escape_html_attr(favicon_url)}">
+<link rel="shortcut icon" type="image/x-icon" href="{escape_html_attr(favicon_url)}">
+<link rel="icon" type="image/x-icon" href="{escape_html_attr(favicon_url)}">
+<link rel="apple-touch-icon" href="{escape_html_attr(favicon_url)}">'
+    
+    # Insérer après </title> ou après <head>
+    if re.search(r'</title>', html):
+        html = re.sub(
+            r'(</title>)',
+            r'def update_favicon_absolute(html, translations):
     """Met à jour la favicon avec une URL absolue (comme bafang) pour que Google la trouve."""
     domain = get_translation('site.domain', translations, 'https://votresite.com')
     domain = domain.rstrip('/') if domain else 'https://votresite.com'
@@ -323,6 +347,53 @@ def update_favicon_absolute(html, translations):
         html = re.sub(
             r'(<head>)',
             r'\1\n<link rel="icon" type="image/x-icon" href="' + escape_html_attr(favicon_url) + '">\n<link rel="apple-touch-icon" href="' + escape_html_attr(favicon_url) + '">',
+            html,
+            count=1
+        )
+    
+    print(f"  ✅ Favicon mise à jour avec URL absolue: {favicon_url}")
+    return html
+' + favicon_tags,
+            html,
+            count=1
+        )
+    elif re.search(r'<head[^>]*>', html):
+        html = re.sub(
+            r'(<head[^>]*>)',
+            r'def update_favicon_absolute(html, translations):
+    """Met à jour la favicon avec une URL absolue (comme bafang) pour que Google la trouve."""
+    domain = get_translation('site.domain', translations, 'https://votresite.com')
+    domain = domain.rstrip('/') if domain else 'https://votresite.com'
+    favicon_url = f"{domain}/images/favicon/favicon.ico"
+    
+    # Remplacer tous les liens favicon par l'URL absolue
+    # Pattern pour capturer tous les types de liens favicon
+    html = re.sub(
+        r'<link rel="icon"[^>]*href="[^"]*"[^>]*>',
+        f'<link rel="icon" type="image/x-icon" href="{escape_html_attr(favicon_url)}">',
+        html
+    )
+    
+    # Mettre à jour apple-touch-icon aussi
+    html = re.sub(
+        r'<link rel="apple-touch-icon"[^>]*href="[^"]*"[^>]*>',
+        f'<link rel="apple-touch-icon" href="{escape_html_attr(favicon_url)}">',
+        html
+    )
+    
+    # S'assurer qu'il y a au moins un lien favicon (ajouter si manquant)
+    if 'rel="icon"' not in html:
+        # Insérer après <head>
+        html = re.sub(
+            r'(<head>)',
+            r'\1\n<link rel="icon" type="image/x-icon" href="' + escape_html_attr(favicon_url) + '">\n<link rel="apple-touch-icon" href="' + escape_html_attr(favicon_url) + '">',
+            html,
+            count=1
+        )
+    
+    print(f"  ✅ Favicon mise à jour avec URL absolue: {favicon_url}")
+    return html
+' + favicon_tags,
             html,
             count=1
         )
